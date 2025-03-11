@@ -1,9 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+interface Event {
+  id: string;
+  summary: string;
+  start: {
+    dateTime: string;
+    date: string;
+  };
+}
+
 export default function Home() {
+  const [events, setEvents] = useState<Event[]>([]);
+
+  const handleLogin = () => {
+    window.location.href = "/api/auth";
+  };
+
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const res = await fetch("/api/calendar");
+        const data = await res.json();
+        setEvents(data);
+      } catch (error) {
+        console.error("Erro:", error);
+      }
+    }
+
+    fetchEvents();
+  }, []);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        Hello Word! Pagina em desenvolvimento
-      </main>
+    <div>
+      <h1>Eventos do Google Calendar</h1>
+      <button onClick={handleLogin}>Login com Google</button>
+      <ul>
+        {events.map((event) => (
+          <li key={event.id}>
+            {event.summary} - {event.start.dateTime || event.start.date}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
