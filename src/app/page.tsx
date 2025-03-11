@@ -40,6 +40,11 @@ export default function Home() {
   // Função para gerar o resumo dos eventos por mês
   const generateMonthlySummary = useCallback(
     (events: Event[]): MonthlySummary[] => {
+      if (!Array.isArray(events)) {
+        console.error("Erro: events não é um array", events);
+        return [];
+      }
+
       const summaryMap: Record<string, MonthlySummary> = {};
 
       events.forEach((event) => {
@@ -82,9 +87,16 @@ export default function Home() {
       try {
         const res = await fetch("/api/calendar");
         const data = await res.json();
+
+        // Verifica se a resposta é um array
+        if (!Array.isArray(data)) {
+          console.error("Erro: A resposta da API não é um array", data);
+          return;
+        }
+
         setSummary(generateMonthlySummary(data));
       } catch (error) {
-        console.error("Erro:", error);
+        console.error("Erro ao buscar eventos:", error);
       }
     }
 
