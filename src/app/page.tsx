@@ -93,21 +93,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-100">
-        Eventos do Google Calendar
-      </h1>
-      <div className="text-center mb-8">
-        <button
-          onClick={handleLogin}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300"
-        >
-          Login com Google
-        </button>
-      </div>
+      {/* Cabeçalho */}
+      <header className="bg-gray-800 py-6 px-8 rounded-lg shadow-lg mb-8">
+        <h1 className="text-3xl font-bold text-center text-gray-100">
+          Eventos do Google Calendar
+        </h1>
+        <div className="text-center mt-4">
+          <button
+            onClick={handleLogin}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300"
+          >
+            Login com Google
+          </button>
+        </div>
+      </header>
 
       {/* Resumo Mensal */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-100 mb-4">Resumo Mensal</h2>
+        <h2 className="text-2xl font-bold text-gray-100 mb-6">Resumo Mensal</h2>
         {summary.map((monthSummary) => (
           <div
             key={monthSummary.month}
@@ -116,24 +119,28 @@ export default function Home() {
             <h3 className="text-xl font-semibold text-gray-200 mb-4">
               Mês: {monthSummary.month}
             </h3>
-            <ul className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Object.entries(monthSummary.tasks).map(([task, details]) => (
-                <li
+                <div
                   key={task}
                   className="bg-gray-700 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
                 >
-                  <h4 className="text-lg font-semibold text-gray-100">
+                  <h4 className="text-lg font-semibold text-gray-100 mb-2">
                     {task}
                   </h4>
-                  <p className="text-gray-300">
-                    Tempo total: {details.totalTime.toFixed(2)} minutos
-                  </p>
-                  <p className="text-gray-300">
-                    Realizado {details.count} vezes
-                  </p>
-                </li>
+                  <div className="space-y-2">
+                    <p className="text-gray-300">
+                      <span className="font-medium">Tempo total:</span>{" "}
+                      {details.totalTime.toFixed(2)} minutos
+                    </p>
+                    <p className="text-gray-300">
+                      <span className="font-medium">Realizado:</span>{" "}
+                      {details.count} vezes
+                    </p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ))}
       </div>
