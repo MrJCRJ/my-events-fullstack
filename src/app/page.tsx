@@ -6,24 +6,23 @@ interface Event {
   id: string;
   summary: string;
   start: {
-    dateTime: string;
-    date: string;
+    dateTime?: string;
+    date?: string;
   };
   end: {
-    dateTime: string;
-    date: string;
+    dateTime?: string;
+    date?: string;
   };
 }
 
 interface MonthlySummary {
-  month: string; // Mês no formato "YYYY-MM"
-  tasks: Record<string, { totalTime: number; count: number }>; // Tarefas e seus totais
+  month: string;
+  tasks: Record<string, { totalTime: number; count: number }>;
 }
 
-const calculateTimeSpent = (start: string, end: string): number => {
-  const startTime = new Date(start).getTime();
-  const endTime = new Date(end).getTime();
-  return (endTime - startTime) / (1000 * 60); // Tempo em minutos
+const calculateTimeSpent = (start?: string, end?: string): number => {
+  if (!start || !end) return 0;
+  return (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60);
 };
 
 const generateMonthlySummary = (events: Event[]): MonthlySummary[] => {
@@ -35,11 +34,12 @@ const generateMonthlySummary = (events: Event[]): MonthlySummary[] => {
   const summaryMap: Record<string, MonthlySummary> = {};
 
   events.forEach((event) => {
-    const startDate = new Date(event.start.dateTime || event.start.date);
+    const startDate = new Date(event.start.dateTime || event.start.date || "");
+    if (isNaN(startDate.getTime())) return;
+
     const month = `${startDate.getFullYear()}-${String(
       startDate.getMonth() + 1
-    ).padStart(2, "0")}`; // Formato "YYYY-MM"
-
+    ).padStart(2, "0")}`;
     const task = event.summary;
     const timeSpent = calculateTimeSpent(
       event.start.dateTime || event.start.date,
@@ -47,17 +47,11 @@ const generateMonthlySummary = (events: Event[]): MonthlySummary[] => {
     );
 
     if (!summaryMap[month]) {
-      summaryMap[month] = {
-        month,
-        tasks: {},
-      };
+      summaryMap[month] = { month, tasks: {} };
     }
 
     if (!summaryMap[month].tasks[task]) {
-      summaryMap[month].tasks[task] = {
-        totalTime: 0,
-        count: 0,
-      };
+      summaryMap[month].tasks[task] = { totalTime: 0, count: 0 };
     }
 
     summaryMap[month].tasks[task].totalTime += timeSpent;
@@ -138,16 +132,16 @@ export default function Home() {
     async function fetchEvents() {
       try {
         const res = await fetch("/api/calendar");
-        const data = await res.json();
+        if (!res.ok) throw new Error(`Erro ${res.status}: Falha na API`);
 
-        if (!Array.isArray(data)) {
+        const data = await res.json();
+        if (!Array.isArray(data))
           throw new Error("Erro: A resposta da API não é um array");
-        }
 
         setSummary(generateMonthlySummary(data));
       } catch (error) {
         console.error("Erro ao buscar eventos:", error);
-        setError("Erro ao carregar eventos. Tente novamente mais tarde.");
+        setError(error instanceof Error ? error.message : "Erro desconhecido");
       } finally {
         setLoading(false);
       }
@@ -158,15 +152,17 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-8">
-        Carregando...
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex justify-center items-center">
+        <div className="border-t-4 border-blue-500 border-solid rounded-full w-12 h-12 animate-spin"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-8">{error}</div>
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex justify-center items-center">
+        <p className="text-red-400">{error}</p>
+      </div>
     );
   }
 
