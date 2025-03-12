@@ -22,8 +22,8 @@ interface GoogleCalendarEvent {
 }
 
 interface GoogleApiCalendarEvent {
-  id?: string | null; // `id` agora é opcional
-  summary?: string | null; // `summary` também é opcional
+  id?: string | null;
+  summary?: string | null;
   start: {
     dateTime?: string;
     date?: string;
@@ -46,8 +46,8 @@ function mapGoogleEventToCalendarEvent(
   event: GoogleApiCalendarEvent
 ): GoogleCalendarEvent {
   return {
-    id: event.id || "", // Garante que `id` seja uma string
-    summary: event.summary || "Sem título", // Garante que `summary` seja uma string
+    id: event.id || "",
+    summary: event.summary || "Sem título",
     start: {
       dateTime: event.start?.dateTime,
       date: event.start?.date,
@@ -60,7 +60,7 @@ function mapGoogleEventToCalendarEvent(
 }
 
 export async function GET() {
-  const cookieStore = await cookies(); // Agora é assíncrono
+  const cookieStore = await cookies(); // Acesso síncrono aos cookies
   const tokensValue = cookieStore.get("google_tokens")?.value;
 
   if (!tokensValue) {
@@ -70,7 +70,45 @@ export async function GET() {
     );
   }
 
-  const tokens: GoogleTokens = JSON.parse(tokensValue);
+  let tokens: GoogleTokens = JSON.parse(tokensValue);
+
+  if (tokens.expiry_date < Date.now() && tokens.refresh_token) {
+    try {
+      // Renova o token corretamente
+      const newTokens = await oauth2Client.getAccessToken();
+
+      if (!newTokens.token) {
+        throw new Error("Falha ao obter novo access token");
+      }
+
+      oauth2Client.setCredentials({
+        access_token: newTokens.token,
+        expiry_date: Date.now() + 3600 * 1000, // 1 hora
+      });
+
+      // Atualiza os tokens no cookie
+      const updatedTokens = {
+        ...tokens,
+        access_token: newTokens.token,
+        expiry_date: Date.now() + 3600 * 1000,
+      };
+
+      // Obtém os cookies corretamente antes de atualizar
+      const cookieStore = await cookies();
+      await cookieStore.set("google_tokens", JSON.stringify(updatedTokens), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      tokens = updatedTokens;
+    } catch (error) {
+      console.error("Erro ao renovar token:", error);
+      return NextResponse.json(
+        { error: "Erro ao renovar token de autenticação" },
+        { status: 401 }
+      );
+    }
+  }
 
   if (!tokens.access_token || tokens.expiry_date < Date.now()) {
     return NextResponse.json(
@@ -84,9 +122,8 @@ export async function GET() {
   try {
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    // Definir o intervalo de datas do ano atual
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString(); // 1º de janeiro do ano atual
-    const endOfYear = new Date(new Date().getFullYear(), 11, 31).toISOString(); // 31 de dezembro do ano atual
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString();
+    const endOfYear = new Date(new Date().getFullYear(), 11, 31).toISOString();
 
     let allEvents: GoogleCalendarEvent[] = [];
     let pageToken: string | undefined;
@@ -99,7 +136,7 @@ export async function GET() {
         maxResults: 2500,
         singleEvents: true,
         orderBy: "startTime",
-        pageToken: pageToken, // Token de paginação
+        pageToken: pageToken,
       });
 
       if (res.data.items) {
